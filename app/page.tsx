@@ -5804,7 +5804,7 @@ export default function HomePage() {
         </header>
 
         <footer className="disclaimer">
-          Unofficial bracket competition. Not affiliated with AIA.
+          Unofficial bracket competition. Not affiliated with AIA. Please DM @charlie.richards13 on IG to report any bugs or issues. Good luck and have fun!
         </footer>
       </div>
 
