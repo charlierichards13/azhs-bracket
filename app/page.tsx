@@ -5548,6 +5548,742 @@
 
 
 
+// "use client";
+
+// import { useEffect, useMemo, useState } from "react";
+// import Link from "next/link";
+// import { auth } from "@/lib/firebase";
+// import {
+//   GoogleAuthProvider,
+//   onAuthStateChanged,
+//   signInWithPopup,
+//   signOut,
+//   User,
+// } from "firebase/auth";
+
+// // Phoenix is UTC-7 year-round (no DST)
+// const TOURNAMENT_START_ISO = "2026-02-18T19:00:00-07:00";
+// const CHAMPIONSHIP_ISO = "2026-03-07T19:00:00-07:00";
+
+// type Phase = "prestart" | "inprogress" | "complete";
+
+// export default function HomePage() {
+//   const [user, setUser] = useState<User | null>(null);
+//   const [checking, setChecking] = useState(true);
+//   const [status, setStatus] = useState("");
+
+//   const tournamentStart = useMemo(() => new Date(TOURNAMENT_START_ISO), []);
+//   const championship = useMemo(() => new Date(CHAMPIONSHIP_ISO), []);
+
+//   const [mounted, setMounted] = useState(false);
+//   const [now, setNow] = useState(0);
+
+//   useEffect(() => {
+//     const unsub = onAuthStateChanged(auth, (u) => {
+//       setUser(u);
+//       setChecking(false);
+//     });
+//     return () => unsub();
+//   }, []);
+
+//   useEffect(() => {
+//     setMounted(true);
+//     setNow(Date.now());
+//     const t = setInterval(() => setNow(Date.now()), 1000);
+//     return () => clearInterval(t);
+//   }, []);
+
+//   const nowMs = mounted ? now : tournamentStart.getTime();
+
+//   const phase: Phase =
+//     nowMs < tournamentStart.getTime()
+//       ? "prestart"
+//       : nowMs < championship.getTime()
+//       ? "inprogress"
+//       : "complete";
+
+//   const targetDate = phase === "prestart" ? tournamentStart : championship;
+
+//   const diffMs = targetDate.getTime() - nowMs;
+//   const safeDiffMs = Math.max(0, diffMs);
+//   const countdown = formatCountdown(safeDiffMs);
+
+//   const tournamentStartPhoenixText = useMemo(
+//     () => (mounted ? formatPhoenix(tournamentStart) : "Loading…"),
+//     [mounted, tournamentStart]
+//   );
+//   const championshipPhoenixText = useMemo(
+//     () => (mounted ? formatPhoenix(championship) : "Loading…"),
+//     [mounted, championship]
+//   );
+//   const targetPhoenixText = useMemo(
+//     () => (mounted ? formatPhoenix(targetDate) : "Loading…"),
+//     [mounted, targetDate]
+//   );
+
+//   const countdownTitle =
+//     phase === "prestart"
+//       ? "Tournament Tip-off Countdown"
+//       : phase === "inprogress"
+//       ? "Championship Countdown"
+//       : "Championship Status";
+
+//   const countdownClockText = mounted
+//     ? `${countdown.days}d ${countdown.hours}h ${countdown.minutes}m ${countdown.seconds}s`
+//     : "Loading countdown…";
+
+//   const countdownLines =
+//     phase === "prestart"
+//       ? [
+//           `Round starts (Phoenix): ${tournamentStartPhoenixText}`,
+//           countdownClockText,
+//           `Championship (Phoenix): ${championshipPhoenixText}`,
+//         ]
+//       : phase === "inprogress"
+//       ? [`Championship (Phoenix): ${targetPhoenixText}`, countdownClockText]
+//       : [`Championship (Phoenix): ${championshipPhoenixText}`, "Tournament complete."];
+
+//   const badge =
+//     phase === "inprogress"
+//       ? { type: "live" as const, text: "LIVE" }
+//       : phase === "complete"
+//       ? { type: "done" as const, text: "COMPLETE" }
+//       : null;
+
+//   async function doGoogleSignIn() {
+//     setStatus("");
+//     try {
+//       await signInWithPopup(auth, new GoogleAuthProvider());
+//     } catch (e: any) {
+//       setStatus(`Sign-in failed: ${e?.message ?? String(e)}`);
+//     }
+//   }
+
+//   async function doSignOut() {
+//     setStatus("");
+//     try {
+//       await signOut(auth);
+//     } catch (e: any) {
+//       setStatus(`Sign-out failed: ${e?.message ?? String(e)}`);
+//     }
+//   }
+
+//   return (
+//     <main className="wrap">
+//       <div className="stage">
+//         <div className="bgSpotlights" aria-hidden="true" />
+//         <div className="bgVignette" aria-hidden="true" />
+
+//         <header className="hero">
+//           <div className="topRow">
+//             <div className="brand">
+//               {/* ✅ CHANGED: Your logo */}
+//               <img
+//                 className="brandLogo"
+//                 src="/brand/azroadtoopen.png"
+//                 alt="AZ Road to Open"
+//                 onError={(e) => {
+//                   (e.currentTarget as HTMLImageElement).style.display = "none";
+//                 }}
+//               />
+
+//               <div className="brandText">
+//                 {/* ✅ CHANGED: Title */}
+//                 <div className="title">AZ Road to Open Tournament Competition</div>
+
+//                 <div className="aiaStripe" aria-hidden="true" />
+
+//                 <div className="subtitle">
+//                   Predict the matchups between the top teams in Arizona high school basketball,
+//                   and who will take home the trophy. Fill out your bracket and compete against
+//                   others to see who can have the most accurate bracket.
+//                 </div>
+//               </div>
+//             </div>
+
+//             <div className="ballCol">
+//               <SpinningBasketball />
+//             </div>
+//           </div>
+
+//           {/* ✅ CHANGED: Panel moved ABOVE countdown/scoring */}
+//           <section className="panel">
+//             {checking ? (
+//               <div className="muted">Loading…</div>
+//             ) : user ? (
+//               <>
+//                 <div className="signedIn">
+//                   <div className="muted">Signed in as</div>
+//                   <div className="who">{user.displayName ?? user.email ?? "User"}</div>
+//                   {user.email ? <div className="muted">{user.email}</div> : null}
+//                 </div>
+
+//                 <div className="btnRow">
+//                   <Link className="hbtn hbtnBlue" href="/my-bracket">
+//                     My Bracket
+//                   </Link>
+
+//                   <Link className="hbtn hbtnGold" href="/bracket">
+//                     Live Bracket
+//                   </Link>
+
+//                   <Link className="hbtn hbtnRed" href="/leaderboard">
+//                     Leaderboard
+//                   </Link>
+
+//                   <button className="hbtn hbtnGhost" onClick={doSignOut}>
+//                     Sign out
+//                   </button>
+//                 </div>
+//               </>
+//             ) : (
+//               <>
+//                 <div className="signedOut">
+//                   <div className="muted">
+//                     Sign in to create and submit your bracket. Once submitted, it locks.
+//                   </div>
+//                 </div>
+
+//                 <div className="btnRow">
+//                   <button className="hbtn hbtnBlue" onClick={doGoogleSignIn}>
+//                     Sign in with Google
+//                   </button>
+
+//                   <Link className="hbtn hbtnGold" href="/bracket">
+//                     View Live Bracket
+//                   </Link>
+
+//                   <Link className="hbtn hbtnRed" href="/leaderboard">
+//                     View Leaderboard
+//                   </Link>
+//                 </div>
+//               </>
+//             )}
+
+//             {status ? <div className="status">{status}</div> : null}
+//           </section>
+
+//           <div className="cardsRow">
+//             <InfoCard
+//               title={countdownTitle}
+//               icon="⏳"
+//               accent="green"
+//               badge={badge}
+//               lines={countdownLines}
+//             />
+
+//             <InfoCard
+//               title="Scoring"
+//               icon="🏀"
+//               accent="blue"
+//               lines={[
+//                 "Round 1 = 1 point per correct pick",
+//                 "Round 2 = 2 points",
+//                 "Round 3 = 4 points",
+//                 "Round 4 = 8 points",
+//                 "Final = 16 points",
+//               ]}
+//             />
+//           </div>
+
+//           <section className="howToPlay">
+//             <div className="howTitle">How to play</div>
+//             <ol className="howList">
+//               <li>
+//                 Go to <b>My Bracket</b> and pick winners (later rounds auto-fill).
+//               </li>
+//               <li>
+//                 Hit <b>Submit Bracket</b> to lock your picks before tip-off:{" "}
+//                 <b>{tournamentStartPhoenixText}</b>.
+//               </li>
+//               <li>
+//                 Watch <b>Live Bracket</b> + <b>Leaderboard</b> update as winners are set.
+//               </li>
+//             </ol>
+//           </section>
+//         </header>
+
+//         <footer className="disclaimer">
+//           Unofficial bracket competition. Not affiliated with AIA. Please DM @charlie.richards13 on IG to report any bugs or issues. Good luck and have fun!
+//         </footer>
+//       </div>
+
+//       <style jsx>{`
+//         .wrap {
+//           padding: 28px 18px 110px;
+//           color: #fff;
+//           display: flex;
+//           justify-content: center;
+//         }
+
+//         .stage {
+//           width: 100%;
+//           max-width: 1120px;
+//           position: relative;
+//           border-radius: 22px;
+//           overflow: hidden;
+//           border: 1px solid rgba(255, 255, 255, 0.1);
+//           background: rgba(0, 0, 0, 0.35);
+//           box-shadow: 0 30px 80px rgba(0, 0, 0, 0.55);
+//         }
+
+//         .bgSpotlights {
+//           position: absolute;
+//           inset: 0;
+//           background:
+//             radial-gradient(900px 520px at 18% 10%, rgba(255,255,255,0.10), rgba(255,255,255,0) 60%),
+//             radial-gradient(820px 520px at 78% 18%, rgba(120,255,170,0.10), rgba(255,255,255,0) 58%),
+//             radial-gradient(980px 620px at 50% 0%, rgba(100,170,255,0.10), rgba(255,255,255,0) 62%),
+//             linear-gradient(to bottom, rgba(255,255,255,0.04), rgba(0,0,0,0.35));
+//           pointer-events: none;
+//         }
+
+//         .bgVignette {
+//           position: absolute;
+//           inset: 0;
+//           background: radial-gradient(1200px 700px at 50% 10%, rgba(0,0,0,0), rgba(0,0,0,0.65));
+//           pointer-events: none;
+//         }
+
+//         .hero {
+//           position: relative;
+//           padding: 22px;
+//         }
+
+//         .topRow {
+//           display: grid;
+//           grid-template-columns: 1fr auto;
+//           gap: 18px;
+//           align-items: start;
+//         }
+
+//         .brand {
+//           display: flex;
+//           gap: 14px;
+//           align-items: flex-start;
+//         }
+
+//         .brandLogo {
+//           width: 120px;
+//           height: auto;
+//           filter: drop-shadow(0 12px 22px rgba(0, 0, 0, 0.45));
+//           border-radius: 10px;
+//           background: rgba(255,255,255,0.06);
+//           border: 1px solid rgba(255,255,255,0.10);
+//           padding: 6px;
+//         }
+
+//         .brandText .title {
+//           font-size: 22px;
+//           font-weight: 780;
+//           letter-spacing: 0.2px;
+//           margin-bottom: 10px;
+//         }
+
+//         .aiaStripe {
+//           height: 10px;
+//           width: min(520px, 100%);
+//           border-radius: 999px;
+//           margin-bottom: 12px;
+//           opacity: 0.95;
+//           background: linear-gradient(
+//             90deg,
+//             #1f6db3 0%,
+//             #1f6db3 62%,
+//             #f2c230 62%,
+//             #f2c230 78%,
+//             #d6463a 78%,
+//             #d6463a 100%
+//           );
+//           box-shadow: 0 12px 28px rgba(0, 0, 0, 0.35);
+//           border: 1px solid rgba(255,255,255,0.10);
+//         }
+
+//         .brandText .subtitle {
+//           font-size: 16px;
+//           line-height: 24px;
+//           color: rgba(255, 255, 255, 0.80);
+//           max-width: 860px;
+//         }
+
+//         .ballCol {
+//           display: flex;
+//           justify-content: flex-end;
+//           padding-top: 6px;
+//         }
+
+//         .cardsRow {
+//           margin-top: 16px;
+//           display: grid;
+//           grid-template-columns: 1fr 1fr;
+//           gap: 12px;
+//         }
+
+//         .panel {
+//           margin-top: 16px;
+//           border: 1px solid rgba(255, 255, 255, 0.12);
+//           border-radius: 18px;
+//           background: rgba(255, 255, 255, 0.04);
+//           box-shadow: 0 18px 45px rgba(0, 0, 0, 0.35);
+//           padding: 18px;
+//         }
+
+//         .muted {
+//           color: rgba(255, 255, 255, 0.72);
+//         }
+
+//         .who {
+//           font-size: 18px;
+//           font-weight: 780;
+//           margin: 2px 0 2px;
+//         }
+
+//         .btnRow {
+//           display: flex;
+//           flex-wrap: wrap;
+//           gap: 10px;
+//           align-items: center;
+//           margin-top: 14px;
+//         }
+
+//         :global(.hbtn) {
+//           border-radius: 12px;
+//           padding: 11px 14px;
+//           border: 1px solid rgba(255, 255, 255, 0.28);
+//           text-decoration: none;
+//           display: inline-flex;
+//           align-items: center;
+//           justify-content: center;
+//           font-weight: 720;
+//           cursor: pointer;
+//           user-select: none;
+//           transition: transform 120ms ease, background 120ms ease, border 120ms ease;
+//           color: #fff;
+//         }
+
+//         :global(.hbtnBlue) {
+//           background: rgba(31, 109, 179, 0.18);
+//           border-color: rgba(31, 109, 179, 0.60);
+//         }
+//         :global(.hbtnGold) {
+//           background: rgba(242, 194, 48, 0.14);
+//           border-color: rgba(242, 194, 48, 0.60);
+//         }
+//         :global(.hbtnRed) {
+//           background: rgba(214, 70, 58, 0.16);
+//           border-color: rgba(214, 70, 58, 0.60);
+//         }
+//         :global(.hbtnGhost) {
+//           background: rgba(0, 0, 0, 0.22);
+//           color: rgba(255, 255, 255, 0.92);
+//           border-color: rgba(255, 255, 255, 0.28);
+//         }
+
+//         :global(.hbtn:hover) {
+//           transform: translateY(-1px);
+//         }
+
+//         .status {
+//           margin-top: 12px;
+//           color: rgba(183, 255, 183, 0.95);
+//         }
+
+//         .howToPlay {
+//           margin-top: 14px;
+//           border: 1px solid rgba(255, 255, 255, 0.10);
+//           border-radius: 18px;
+//           background: rgba(0, 0, 0, 0.18);
+//           padding: 14px 16px;
+//         }
+
+//         .howTitle {
+//           font-weight: 800;
+//           letter-spacing: 0.2px;
+//           margin-bottom: 8px;
+//           color: rgba(255, 255, 255, 0.92);
+//         }
+
+//         .howList {
+//           margin: 0;
+//           padding-left: 18px;
+//           color: rgba(255, 255, 255, 0.72);
+//           line-height: 20px;
+//           font-size: 13px;
+//         }
+
+//         .howList li {
+//           margin: 6px 0;
+//         }
+
+//         .disclaimer {
+//           margin-top: 14px;
+//           padding: 12px 16px 18px;
+//           text-align: center;
+//           font-size: 12px;
+//           line-height: 18px;
+//           color: rgba(255, 255, 255, 0.55);
+//           border-top: 1px solid rgba(255, 255, 255, 0.10);
+//         }
+
+//         @media (max-width: 920px) {
+//           .topRow {
+//             grid-template-columns: 1fr;
+//           }
+//           .ballCol {
+//             justify-content: flex-start;
+//           }
+//           .cardsRow {
+//             grid-template-columns: 1fr;
+//           }
+//           .brand {
+//             flex-direction: column;
+//           }
+//           .brandLogo {
+//             width: 160px;
+//           }
+//         }
+//       `}</style>
+//     </main>
+//   );
+// }
+
+// function InfoCard({
+//   title,
+//   icon,
+//   lines,
+//   accent,
+//   badge,
+// }: {
+//   title: string;
+//   icon: string;
+//   lines: string[];
+//   accent: "green" | "blue";
+//   badge?: { type: "live" | "done"; text: string } | null;
+// }) {
+//   const accentBorder =
+//     accent === "green" ? "rgba(120,255,170,0.30)" : "rgba(120,180,255,0.30)";
+//   const accentBg =
+//     accent === "green" ? "rgba(120,255,170,0.07)" : "rgba(120,180,255,0.07)";
+
+//   return (
+//     <div className="icard">
+//       <div className="ihead">
+//         <div className="ititle">
+//           <span className="icon">{icon}</span> {title}
+//         </div>
+
+//         {badge?.type === "live" ? (
+//           <div className="pillLive" title="Tournament has started">
+//             <span className="dot" /> {badge.text}
+//           </div>
+//         ) : badge?.type === "done" ? (
+//           <div className="pillDone" title="Tournament complete">
+//             {badge.text}
+//           </div>
+//         ) : null}
+//       </div>
+
+//       <div className="ibody">
+//         {lines.map((l, idx) => (
+//           <div key={idx} className="iline">
+//             {l}
+//           </div>
+//         ))}
+//       </div>
+
+//       <style jsx>{`
+//         .icard {
+//           border: 1px solid ${accentBorder};
+//           background: ${accentBg};
+//           border-radius: 18px;
+//           padding: 14px;
+//           box-shadow: 0 14px 35px rgba(0, 0, 0, 0.30);
+//         }
+//         .ihead {
+//           display: flex;
+//           justify-content: space-between;
+//           align-items: center;
+//           margin-bottom: 10px;
+//           gap: 10px;
+//         }
+//         .ititle {
+//           font-weight: 780;
+//           letter-spacing: 0.2px;
+//           display: flex;
+//           align-items: center;
+//           gap: 6px;
+//         }
+//         .ibody {
+//           color: rgba(255, 255, 255, 0.80);
+//           line-height: 20px;
+//           font-size: 14px;
+//         }
+//         .iline {
+//           margin-top: 6px;
+//         }
+//         .iline:first-child {
+//           margin-top: 0;
+//         }
+
+//         .pillLive {
+//           display: inline-flex;
+//           align-items: center;
+//           gap: 8px;
+//           padding: 6px 10px;
+//           border-radius: 999px;
+//           border: 1px solid rgba(255, 120, 120, 0.45);
+//           background: rgba(255, 90, 90, 0.10);
+//           color: rgba(255, 230, 230, 0.95);
+//           font-weight: 900;
+//           letter-spacing: 0.4px;
+//           font-size: 12px;
+//           white-space: nowrap;
+//         }
+//         .dot {
+//           width: 8px;
+//           height: 8px;
+//           border-radius: 999px;
+//           background: rgba(255, 90, 90, 0.95);
+//           box-shadow: 0 0 14px rgba(255, 90, 90, 0.75);
+//           animation: pulse 1.1s ease-in-out infinite;
+//         }
+
+//         .pillDone {
+//           padding: 6px 10px;
+//           border-radius: 999px;
+//           border: 1px solid rgba(180, 210, 255, 0.35);
+//           background: rgba(120, 180, 255, 0.10);
+//           color: rgba(220, 235, 255, 0.95);
+//           font-weight: 900;
+//           letter-spacing: 0.4px;
+//           font-size: 12px;
+//           white-space: nowrap;
+//         }
+
+//         @keyframes pulse {
+//           0%,
+//           100% {
+//             transform: scale(1);
+//             opacity: 1;
+//           }
+//           50% {
+//             transform: scale(1.35);
+//             opacity: 0.75;
+//           }
+//         }
+//       `}</style>
+//     </div>
+//   );
+// }
+
+// function SpinningBasketball() {
+//   return (
+//     <div className="ballWrap" aria-hidden="true">
+//       <div className="ball">
+//         <svg viewBox="0 0 100 100" className="ballSvg">
+//           <defs>
+//             <radialGradient id="g" cx="30%" cy="30%" r="70%">
+//               <stop offset="0%" stopColor="#ffb36b" stopOpacity="1" />
+//               <stop offset="55%" stopColor="#e67e22" stopOpacity="1" />
+//               <stop offset="100%" stopColor="#b85a14" stopOpacity="1" />
+//             </radialGradient>
+//           </defs>
+//           <circle cx="50" cy="50" r="48" fill="url(#g)" />
+//           <circle
+//             cx="50"
+//             cy="50"
+//             r="48"
+//             fill="none"
+//             stroke="rgba(0,0,0,0.35)"
+//             strokeWidth="2"
+//           />
+//           <path d="M50 2 v96" stroke="rgba(0,0,0,0.55)" strokeWidth="3" />
+//           <path d="M2 50 h96" stroke="rgba(0,0,0,0.55)" strokeWidth="3" />
+//           <path
+//             d="M18 10 C40 30, 40 70, 18 90"
+//             fill="none"
+//             stroke="rgba(0,0,0,0.55)"
+//             strokeWidth="3"
+//           />
+//           <path
+//             d="M82 10 C60 30, 60 70, 82 90"
+//             fill="none"
+//             stroke="rgba(0,0,0,0.55)"
+//             strokeWidth="3"
+//           />
+//         </svg>
+//       </div>
+
+//       <style jsx>{`
+//         .ballWrap {
+//           width: 120px;
+//           height: 120px;
+//           display: grid;
+//           place-items: center;
+//           filter: drop-shadow(0 14px 24px rgba(0, 0, 0, 0.45));
+//         }
+//         .ball {
+//           width: 106px;
+//           height: 106px;
+//           border-radius: 999px;
+//           animation: spin 2.8s linear infinite, floaty 3.2s ease-in-out infinite;
+//           transform-origin: 50% 50%;
+//         }
+//         .ballSvg {
+//           width: 100%;
+//           height: 100%;
+//           border-radius: 999px;
+//           display: block;
+//         }
+//         @keyframes spin {
+//           from {
+//             transform: rotate(0deg);
+//           }
+//           to {
+//             transform: rotate(360deg);
+//           }
+//         }
+//         @keyframes floaty {
+//           0%,
+//           100% {
+//             translate: 0 0;
+//           }
+//           50% {
+//             translate: 0 -6px;
+//           }
+//         }
+//       `}</style>
+//     </div>
+//   );
+// }
+
+// function formatCountdown(ms: number) {
+//   const totalSeconds = Math.floor(ms / 1000);
+//   const days = Math.floor(totalSeconds / 86400);
+//   const hours = Math.floor((totalSeconds % 86400) / 3600);
+//   const minutes = Math.floor((totalSeconds % 3600) / 60);
+//   const seconds = totalSeconds % 60;
+//   return { days, hours, minutes, seconds };
+// }
+
+// function formatPhoenix(d: Date) {
+//   try {
+//     return new Intl.DateTimeFormat("en-US", {
+//       timeZone: "America/Phoenix",
+//       dateStyle: "full",
+//       timeStyle: "short",
+//     }).format(d);
+//   } catch {
+//     return d.toLocaleString();
+//   }
+// }
+
+
+
+
+
+
+
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
@@ -5557,6 +6293,7 @@ import {
   GoogleAuthProvider,
   onAuthStateChanged,
   signInWithPopup,
+  signInWithRedirect,
   signOut,
   User,
 } from "firebase/auth";
@@ -5566,6 +6303,24 @@ const TOURNAMENT_START_ISO = "2026-02-18T19:00:00-07:00";
 const CHAMPIONSHIP_ISO = "2026-03-07T19:00:00-07:00";
 
 type Phase = "prestart" | "inprogress" | "complete";
+
+function isInAppBrowser() {
+  if (typeof navigator === "undefined") return false;
+  const ua = navigator.userAgent || "";
+  // Common embedded browsers that often break OAuth popups/cookies
+  return (
+    /Snapchat/i.test(ua) ||
+    /Instagram/i.test(ua) ||
+    /FBAN|FBAV/i.test(ua) || // Facebook
+    /TikTok/i.test(ua)
+  );
+}
+
+function isIOS() {
+  if (typeof navigator === "undefined") return false;
+  const ua = navigator.userAgent || "";
+  return /iPhone|iPad|iPod/i.test(ua);
+}
 
 export default function HomePage() {
   const [user, setUser] = useState<User | null>(null);
@@ -5577,6 +6332,13 @@ export default function HomePage() {
 
   const [mounted, setMounted] = useState(false);
   const [now, setNow] = useState(0);
+
+  const [inApp, setInApp] = useState(false);
+  const [copied, setCopied] = useState(false);
+
+  useEffect(() => {
+    setInApp(isInAppBrowser());
+  }, []);
 
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, (u) => {
@@ -5652,10 +6414,28 @@ export default function HomePage() {
 
   async function doGoogleSignIn() {
     setStatus("");
+    setCopied(false);
+
     try {
-      await signInWithPopup(auth, new GoogleAuthProvider());
+      const provider = new GoogleAuthProvider();
+
+      // ✅ Key fix: embedded browsers often fail popup. Use redirect there.
+      if (inApp) {
+        await signInWithRedirect(auth, provider);
+        return;
+      }
+
+      await signInWithPopup(auth, provider);
     } catch (e: any) {
-      setStatus(`Sign-in failed: ${e?.message ?? String(e)}`);
+      const msg = e?.message ?? String(e);
+      // Give a friendlier hint for in-app cases
+      if (inApp) {
+        setStatus(
+          `Sign-in failed inside this in-app browser. Please tap “Open in Browser” (Safari/Chrome) and try again. (${msg})`
+        );
+      } else {
+        setStatus(`Sign-in failed: ${msg}`);
+      }
     }
   }
 
@@ -5668,6 +6448,26 @@ export default function HomePage() {
     }
   }
 
+  async function copyLink() {
+    try {
+      const url = typeof window !== "undefined" ? window.location.href : "https://azroadtoopen.com";
+      await navigator.clipboard.writeText(url);
+      setCopied(true);
+      setStatus("Link copied! Paste it into Safari/Chrome (or text it to a friend).");
+      setTimeout(() => setCopied(false), 1600);
+    } catch {
+      setStatus("Could not copy link on this device/browser. Try selecting the URL and copying manually.");
+    }
+  }
+
+  const inAppHelpText = useMemo(() => {
+    if (!inApp) return null;
+    const ios = isIOS();
+    return ios
+      ? `You're viewing this inside an in-app browser. If Google sign-in fails, tap the Share icon and choose “Open in Safari”.`
+      : `You're viewing this inside an in-app browser. If Google sign-in fails, tap the ⋮ menu and choose “Open in browser” (Chrome).`;
+  }, [inApp]);
+
   return (
     <main className="wrap">
       <div className="stage">
@@ -5677,7 +6477,6 @@ export default function HomePage() {
         <header className="hero">
           <div className="topRow">
             <div className="brand">
-              {/* ✅ CHANGED: Your logo */}
               <img
                 className="brandLogo"
                 src="/brand/azroadtoopen.png"
@@ -5688,7 +6487,6 @@ export default function HomePage() {
               />
 
               <div className="brandText">
-                {/* ✅ CHANGED: Title */}
                 <div className="title">AZ Road to Open Tournament Competition</div>
 
                 <div className="aiaStripe" aria-hidden="true" />
@@ -5706,7 +6504,30 @@ export default function HomePage() {
             </div>
           </div>
 
-          {/* ✅ CHANGED: Panel moved ABOVE countdown/scoring */}
+          {/* ✅ NEW: In-app browser warning */}
+          {inApp ? (
+            <section className="inAppBanner">
+              <div className="inAppTitle">⚠️ In-app browser detected</div>
+              <div className="inAppText">{inAppHelpText}</div>
+
+              <div className="inAppActions">
+                <button className="hbtn hbtnGhost" onClick={copyLink}>
+                  {copied ? "Copied!" : "Copy Link"}
+                </button>
+
+                <a
+                  className="hbtn hbtnGhost"
+                  href="https://azroadtoopen.com"
+                  target="_blank"
+                  rel="noreferrer"
+                  title="Open in a full browser"
+                >
+                  Open in Browser
+                </a>
+              </div>
+            </section>
+          ) : null}
+
           <section className="panel">
             {checking ? (
               <div className="muted">Loading…</div>
@@ -5804,7 +6625,8 @@ export default function HomePage() {
         </header>
 
         <footer className="disclaimer">
-          Unofficial bracket competition. Not affiliated with AIA. Please DM @charlie.richards13 on IG to report any bugs or issues. Good luck and have fun!
+          Unofficial bracket competition. Not affiliated with AIA. Please DM @charlie.richards13 on IG
+          to report any bugs or issues. Good luck and have fun!
         </footer>
       </div>
 
@@ -5912,6 +6734,32 @@ export default function HomePage() {
           padding-top: 6px;
         }
 
+        /* ✅ NEW banner */
+        .inAppBanner {
+          margin-top: 14px;
+          border: 1px solid rgba(255, 255, 255, 0.12);
+          border-radius: 18px;
+          background: rgba(0, 0, 0, 0.30);
+          padding: 14px 16px;
+          box-shadow: 0 16px 40px rgba(0, 0, 0, 0.35);
+        }
+        .inAppTitle {
+          font-weight: 900;
+          letter-spacing: 0.2px;
+          margin-bottom: 6px;
+        }
+        .inAppText {
+          opacity: 0.82;
+          font-size: 13px;
+          line-height: 18px;
+        }
+        .inAppActions {
+          margin-top: 10px;
+          display: flex;
+          flex-wrap: wrap;
+          gap: 10px;
+        }
+
         .cardsRow {
           margin-top: 16px;
           display: grid;
@@ -5986,6 +6834,8 @@ export default function HomePage() {
         .status {
           margin-top: 12px;
           color: rgba(183, 255, 183, 0.95);
+          font-size: 13px;
+          line-height: 18px;
         }
 
         .howToPlay {
