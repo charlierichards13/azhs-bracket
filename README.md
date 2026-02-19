@@ -16,3 +16,6 @@ A web-based tournament bracket for Arizona high school basketball. This is a sid
 ### 1) Install dependencies
 ```bash
 npm install
+
+
+Licensed under the Apache License, Version 2.0
