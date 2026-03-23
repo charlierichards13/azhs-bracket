@@ -14817,7 +14817,7 @@ export default function HomePage() {
       : null;
 
   const finalsLines = finalsDone
-    ? [`Finals (Phoenix): ${finalsPhoenixText}`, "Tournament complete."]
+    ? [`Finals (Phoenix): ${finalsPhoenixText}`, "Sunnyslope wins the championship! Congrats to all the teams on an amazing season. Thanks for playing!"]
     : finalsLive
       ? [
           "Finals are LIVE right now.",
